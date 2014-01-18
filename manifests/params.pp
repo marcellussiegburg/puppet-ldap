@@ -1,4 +1,3 @@
-
 class ldap::params {
 
   case $::osfamily {
@@ -69,7 +68,7 @@ class ldap::params {
 
     'RedHat' : {
 
-      $package   = [ 'openldap', 'openldap-clients' ]
+      $package   = [ 'openldap', 'openldap-clients']
 
       $prefix    = '/etc/openldap'
       $owner     = 'root'
