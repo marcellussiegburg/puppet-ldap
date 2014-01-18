@@ -20,7 +20,7 @@ class ldap::params {
       $server_group    = 'openldap'
       $db_prefix       = '/var/lib/ldap'
       $ssl_prefix      = '/etc/ssl/certs'
-      $server_run      = '/var/run/openldap'
+      $server_run      = '/var/run/slapd'
 
       case $::operatingsystemmajrelease {
         5 : {
@@ -63,6 +63,44 @@ class ldap::params {
         'index uid          pres,sub,eq',
         'index displayName  pres,sub,eq',
         ]
+
+      #
+      # olcTLS* attributes are not defined here
+      # because they do have their own behavior
+      # according to the puppet module parameters
+      #
+      #  olcTLSCACertificatePath = $ssl_ca
+      #  olcTLSCertificateFile = $ssl_cert
+      #  olcTLSCertificateKeyFile = $ssl_key
+      #
+      $cnconfig_default_attrs = [
+        'olcConfigFile',
+        'olcConfigDir',
+        'olcAllows',
+        'olcAttributeOptions',
+        'olcAuthzPolicty',
+        'olcConcurrency',
+        'olcConnMaxPending',
+        'olcConnMaxPendingAuth',
+        'olcGentleHUP',
+        'olcIdleTimeout',
+        'olcIndexSubstrIfMaxLen',
+        'olcIndexSubstrIfMinLen',
+        'olcIndexSubstrIfAnyLen',
+        'olcIndexSubstrIfAnyStep',
+        'olcIndexIntLen',
+        'olcLocalSSF',
+        'olcPidFile',
+        'olcReadOnly',
+        'olcReverseLookup',
+        'olcSaslSecProps',
+        'olcSockbufMaxIncoming',
+        'olcSockbufMaxIncomingAuth',
+        'olcTLSVerifyClient',
+        'olcThreads',
+        'olcToolThreads',
+        'olcWriteTimeout',
+      ]
 
     }
 
@@ -139,6 +177,44 @@ class ldap::params {
         'index uid          pres,sub,eq',
         'index displayName  pres,sub,eq',
         ]
+
+      #
+      # olcTLS* attributes are not defined here
+      # because they do have their own behavior
+      # according to the puppet module parameters
+      #
+      #  olcTLSCACertificatePath = $ssl_ca
+      #  olcTLSCertificateFile = $ssl_cert
+      #  olcTLSCertificateKeyFile = $ssl_key
+      #
+      $cnconfig_default_attrs = [
+        'olcConfigFile',
+        'olcConfigDir',
+        'olcAllows',
+        'olcAttributeOptions',
+        'olcAuthzPolicty',
+        'olcConcurrency',
+        'olcConnMaxPending',
+        'olcConnMaxPendingAuth',
+        'olcGentleHUP',
+        'olcIdleTimeout',
+        'olcIndexSubstrIfMaxLen',
+        'olcIndexSubstrIfMinLen',
+        'olcIndexSubstrIfAnyLen',
+        'olcIndexSubstrIfAnyStep',
+        'olcIndexIntLen',
+        'olcLocalSSF',
+        'olcPidFile',
+        'olcReadOnly',
+        'olcReverseLookup',
+        'olcSaslSecProps',
+        'olcSockbufMaxIncoming',
+        'olcSockbufMaxIncomingAuth',
+        'olcTLSVerifyClient',
+        'olcThreads',
+        'olcToolThreads',
+        'olcWriteTimeout',
+      ]
     }
 
     'Suse' : {
@@ -190,6 +266,44 @@ class ldap::params {
         'index uid          pres,sub,eq',
         'index displayName  pres,sub,eq',
         ]
+
+      #
+      # olcTLS* attributes are not defined here
+      # because they do have their own behavior
+      # according to the puppet module parameters
+      #
+      #  olcTLSCACertificatePath = $ssl_ca
+      #  olcTLSCertificateFile = $ssl_cert
+      #  olcTLSCertificateKeyFile = $ssl_key
+      #
+      $cnconfig_default_attrs = [
+        'olcConfigFile',
+        'olcConfigDir',
+        'olcAllows',
+        'olcAttributeOptions',
+        'olcAuthzPolicty',
+        'olcConcurrency',
+        'olcConnMaxPending',
+        'olcConnMaxPendingAuth',
+        'olcGentleHUP',
+        'olcIdleTimeout',
+        'olcIndexSubstrIfMaxLen',
+        'olcIndexSubstrIfMinLen',
+        'olcIndexSubstrIfAnyLen',
+        'olcIndexSubstrIfAnyStep',
+        'olcIndexIntLen',
+        'olcLocalSSF',
+        'olcPidFile',
+        'olcReadOnly',
+        'olcReverseLookup',
+        'olcSaslSecProps',
+        'olcSockbufMaxIncoming',
+        'olcSockbufMaxIncomingAuth',
+        'olcTLSVerifyClient',
+        'olcThreads',
+        'olcToolThreads',
+        'olcWriteTimeout',
+      ]
 
     }
 
