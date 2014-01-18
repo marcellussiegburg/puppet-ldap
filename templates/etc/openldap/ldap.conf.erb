@@ -35,6 +35,7 @@ nss_reconnect_tries <%= @nss_reconnect_tries %>
 nss_reconnect_sleeptime <%= @nss_reconnect_sleeptime %>
 nss_reconnect_maxsleeptime <%= @nss_reconnect_maxsleeptime %>
 nss_reconnect_maxconntries <%= @nss_reconnect_maxconntries %>
+nss_initgroups_ignoreusers root daemon bin sys sync games man lp mail news uucp proxy www-data backup list irc gnats nobody libuuid statd sshd puppet
 <% end -%>
 
 <% if @pam == true then -%>
@@ -42,6 +43,13 @@ nss_reconnect_maxconntries <%= @nss_reconnect_maxconntries %>
 #pam_member_attribute <%= @pam_att_member %>
 pam_password         <%= @pam_passwd %>
 pam_filter           <%= @pam_filter %>
+<% end -%>
+
+<% if @sudoers_base != false -%>
+sudoers_base          <%= @sudoers_base %>,<%= @base %>
+sudoers_search_filter <%= @sudoers_filter %>
+sudoers_timed         <%= @sudoers_timed %>
+sudoers_debug         <%= @sudoers_debug %>
 <% end -%>
 
 <% if @ssl == true then -%>
