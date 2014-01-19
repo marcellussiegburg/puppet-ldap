@@ -1,6 +1,6 @@
-# == Class: ldap
+# == Class: ldap::client
 #
-# Puppet module to manage client and server configuration for
+# Puppet module to manage client installation and configuration for
 # **OpenLdap**.
 #
 #
@@ -37,14 +37,6 @@
 #    Password for default bind dn
 #    *Optional* (defaults to false)
 #
-#  [port]
-#    The port which the server is using
-#    *Optional* (defaults to 389 if ssl is disabled; to 636 otherwise)
-#
-#  [scope]
-#    The scope to use
-#    *Optional* (defaults to sub)
-#
 #  [ssl]
 #    Enable TLS/SSL negotiation with the server
 #    *Requires*: ssl_cert parameter
@@ -54,18 +46,6 @@
 #    Filename for the CA (or self signed certificate). It should
 #    be located under puppet:///files/ldap/
 #    *Optional* (defaults to false)
-#
-#  [tls_checkpeer]
-#    Require and verify server certificate.
-#    *Optional* (defaults to true)
-#
-#  [tls_ciphers]
-#    SSL cipher suite.
-#    *Optional* (defaults to TLSv1)
-#
-#  [schema]
-#    The ldap schema that should be used.
-#    *Optional* (defaults to rfc2307bis)
 #
 #  [nsswitch]
 #    If enabled (nsswitch => true) enables nsswitch to use
@@ -84,22 +64,6 @@
 #  [nss_shadow]
 #    Search base for the shadow database. *base* will be appended.
 #    *Optional* (defaults to false)
-#
-#  [nss_reconnect_tries]
-#    Number of times to douple the sleep time
-#    *Optional* (defaults to 5)
-#
-#  [nss_reconnect_sleeptime]
-#    Initial sleep value
-#    *Optional* (defaults to 4)
-#
-#  [nss_reconnect_maxsleeptime]
-#    Max sleep value to cap at
-#    *Optional* (defaults to 64)
-#
-#  [nss_reconnect_maxconntries]
-#    How many tries before sleeping
-#    *Optional* (defaults to 2)
 #
 #  [pam]
 #    If enabled (pam => true) enables pam module, which will
@@ -123,10 +87,28 @@
 #    Filter to use when retrieving user information
 #    *Optional* (defaults to *'objectClass=posixAccount'*)
 #
-#  [sssd]
-#    Enable to configure ldap via sssd.
-#    Using sssd it is working on Fedora.
+#  [sudoers_base]
+#    The DN (parameter $base is appended) to use when performing sudo
+#    LDAP queries. Typically this is of the form ou=SUDOers,dc=example,dc=com
+#    for the domain example.com.
 #    *Optional* (defaults to false)
+#
+#  [sudoers_filter]
+#    An LDAP filter which is used to restrict the set of records returned when
+#    performing a sudo LDAP query. Typically, this is of the form attribute=value
+#    or (&(attribute=value)(attribute2=value2)).
+#    *Optional* (defaults to false)
+#
+#  [sudoers_timed]
+#    Whether or not to evaluate the sudoNotBefore and sudoNotAfter attributes
+#    that implement time-dependent sudoers entries.
+#    *Optional* (defaults to false)
+#
+#  [sudoers_debug]
+#    This sets the debug level for sudo LDAP queries. Debugging information
+#    is printed to the standard error.
+#    Should not be set on production environments
+#    *Optional* (defaults to 0)
 #
 #  [enable_motd]
 #    Use motd to report the usage of this module.
@@ -148,25 +130,43 @@
 # === Examples
 #
 # class { 'ldap':
+#  uri  => 'ldap://ldapserver00 ldap://ldapserver01',
+#  base => 'dc=suffix',
 # }
 #
 # class { 'ldap':
-#   ensure => present,
+#  uri  => 'ldap://ldapserver00',
+#  base => 'dc=suffix',
+#  ssl  => true,
+#  ssl_cert => 'ldapserver00.pem'
 # }
+#
+# class { 'ldap':
+#  uri        => 'ldap://ldapserver00',
+#  base       => 'dc=suffix',
+#  ssl        => true,
+#  ssl_cert => 'ldapserver00.pem'
+#
+#  nsswitch   => true,
+#  nss_passwd => 'ou=users',
+#  nss_shadow => 'ou=users',
+#  nss_group  => 'ou=groups',
+#
+#  pam        => true,
+# }
+#
 #
 # === Authors
 #
-#  Emiliano Castagnari <ecastag@gmail.com> (a.k.a. Torian)
-#  Marcellus Siegburg <msiegbur@imn.htwk-leipzig.de>
+# Emiliano Castagnari ecastag@gmail.com (a.k.a. Torian)
 #
 #
 # === Copyleft
 #
 # Copyleft (C) 2012 Emiliano Castagnari ecastag@gmail.com (a.k.a. Torian)
-# Copyleft (C) 2014 Marcellus Siegburg msiegbur@imn.htwk-leipzig.de
 #
 #
-class ldap(
+class ldap::client(
   $uri,
   $base,
   $version        = '3',
@@ -175,22 +175,13 @@ class ldap(
   $idle_timelimit = 60,
   $binddn         = false,
   $bindpw         = false,
-  $port           = undef,
-  $scope          = 'sub',
   $ssl            = false,
   $ssl_cert       = false,
-  $tls_checkpeer  = true,
-  $tls_ciphers    = 'TLSv1',
-  $schema         = 'rfc2307bis',
 
   $nsswitch   = false,
   $nss_passwd = false,
   $nss_group  = false,
   $nss_shadow = false,
-  $nss_reconnect_tries = 5,
-  $nss_reconnect_sleeptime = 4,
-  $nss_reconnect_maxsleeptime = 64,
-  $nss_reconnect_maxconntries = 2,
 
   $pam            = false,
   $pam_att_login  = 'uid',
@@ -198,18 +189,19 @@ class ldap(
   $pam_passwd     = 'md5',
   $pam_filter     = 'objectClass=posixAccount',
 
-  $sssd           = false,
+  $sudoers_base   = false,
+  $sudoers_filter = false,
+  $sudoers_timed  = false,
+  $sudoers_debug  = 0,
+
   $enable_motd    = false,
   $ensure         = present) {
 
-  include ldap::params
+  require ldap
 
   if($enable_motd) {
     motd::register { 'ldap': }
   }
-
-    include stdlib
-    include ldap::params
 
   File {
     ensure  => $ensure,
@@ -217,25 +209,24 @@ class ldap(
     owner   => $ldap::params::owner,
     group   => $ldap::params::group,
   }
-  $file_ensure = $ensure ? {
-    present => directory,
-    default => absent,
-  }
+
   file { $ldap::params::prefix:
-    ensure  => $file_ensure,
+    ensure  => $ensure ? {
+                  present => directory,
+                  default => absent,
+                },
     require => Package[$ldap::params::package],
   }
 
-  file { "${ldap::params::prefix}/${ldap::params::config}":
-    content => template("ldap/${ldap::params::config}.erb"),
-    require => File[$ldap::params::prefix],
+  if($sudoers_base) {
+    if(! $sudoers_filter) {
+      fail('If sudoers_base attribute is set, you must define sudoers_filter')
+    }
   }
 
-  if(!$port) {
-    $port = $ssl ? {
-      false => 389,
-      true  => 636,
-    }
+  file { "${ldap::params::prefix}/${ldap::params::config}":
+    content => template("ldap/${ldap::params::prefix}/${ldap::params::config}.erb"),
+    require => File[$ldap::params::prefix],
   }
 
   if($ssl) {
@@ -244,54 +235,49 @@ class ldap(
       fail('When ssl is enabled you must define ssl_cert (filename)')
     }
 
-    file { "${ldap::params::cacertdir}/${ssl_cert}":
-      ensure => $ensure,
+    file { $ldap::params::cacertdir:
+      ensure => $ensure ? {
+                  present => directory,
+                  default => absent
+                },
       owner  => 'root',
-      group  => $ldap::params::group,
-      mode   => '0644',
-      source => "puppet:///modules/ldap/${ssl_cert}"
+      group  => 'root',
+      mode   => '0755',
+    }
+
+    file { "${ldap::params::cacertdir}/${ssl_cert}":
+      ensure  => $ensure,
+      owner   => 'root',
+      group   => $ldap::params::group,
+      mode    => '0644',
+      source  => "puppet:///files/ldap/${ssl_cert}",
+      require => File[$ldap::params::cacertdir],
     }
 
     # Create certificate hash file
     exec { 'Build cert hash':
-      command => "/usr/bin/ln -s ${ldap::params::cacertdir}/${ssl_cert} ${ldap::params::cacertdir}/$(/usr/bin/openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
-      unless  => "/usr/bin/test -f ${ldap::params::cacertdir}/$(/usr/bin/openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
-      require => File["${ldap::params::cacertdir}/${ssl_cert}"]
+      command => "ln -s ${ldap::params::cacertdir}/${ssl_cert} ${ldap::params::cacertdir}/$(openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
+      unless  => "test -f ${ldap::params::cacertdir}/$(openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
+      require => File["${ldap::params::cacertdir}/${ssl_cert}"],
+      path    => [ "/bin", "/usr/bin", "/sbin", "/usr/sbin" ]
     }
   }
 
-  # include module nsswitch
+  # require module nsswitch
   if($nsswitch == true) {
-    include nsswitch
-  }
-
-  # include module pam
-  if($pam == true) {
-    include pam
-  }
-  if ($sssd == true) {
-    class { 'sssd':
-      ensure              => $ldap::ensure,
-      uri                 => $ldap::uri,
-      base                => $ldap::base,
-      binddn              => $ldap::binddn,
-      bindpw              => $ldap::bindpw,
-      ssl                 => $ldap::ssl,
-      tls_ciphers         => $ldap::tls_ciphers,
-      cacertdir           => $ldap::ldap::params::cacertdir,
-      schema              => $ldap::schema,
-      nsswitch            => $ldap::nsswitch,
-      nss_passwd          => $ldap::nss_passwd,
-      nss_group           => $ldap::nss_group,
-      nss_shadow          => $ldap::nss_shadow,
-      nss_reconnect_tries => $ldap::nss_reconnect_tries,
-      pam                 => $ldap::pam,
-      pam_att_login       => $ldap::pam_att_login,
-      pam_filter          => $ldap::pam_filter,
+    class { 'nsswitch':
+      uri         => $uri,
+      base        => $base,
+      module_type => $ensure ? {
+                        'present' => 'ldap',
+                        default   => 'none'
+                      },
     }
   }
-  package { $ldap::params::package :
-    ensure => $ensure,
+
+  # require module pam
+  if($pam == true) {
+    Class ['pam::pamd'] -> Class['ldap']
   }
 
 }
