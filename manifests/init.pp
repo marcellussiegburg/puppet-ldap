@@ -37,6 +37,14 @@
 #    Password for default bind dn
 #    *Optional* (defaults to false)
 #
+#  [port]
+#    The port which the server is using
+#    *Optional* (defaults to 389 if ssl is disabled; to 636 otherwise)
+#
+#  [scope]
+#    The scope to use
+#    *Optional* (defaults to sub)
+#
 #  [ssl]
 #    Enable TLS/SSL negotiation with the server
 #    *Requires*: ssl_cert parameter
@@ -46,6 +54,18 @@
 #    Filename for the CA (or self signed certificate). It should
 #    be located under puppet:///files/ldap/
 #    *Optional* (defaults to false)
+#
+#  [tls_checkpeer]
+#    Require and verify server certificate.
+#    *Optional* (defaults to true)
+#
+#  [tls_ciphers]
+#    SSL cipher suite.
+#    *Optional* (defaults to TLSv1)
+#
+#  [schema]
+#    The ldap schema that should be used.
+#    *Optional* (defaults to rfc2307bis)
 #
 #  [nsswitch]
 #    If enabled (nsswitch => true) enables nsswitch to use
@@ -64,6 +84,22 @@
 #  [nss_shadow]
 #    Search base for the shadow database. *base* will be appended.
 #    *Optional* (defaults to false)
+#
+#  [nss_reconnect_tries]
+#    Number of times to douple the sleep time
+#    *Optional* (defaults to 5)
+#
+#  [nss_reconnect_sleeptime]
+#    Initial sleep value
+#    *Optional* (defaults to 4)
+#
+#  [nss_reconnect_maxsleeptime]
+#    Max sleep value to cap at
+#    *Optional* (defaults to 64)
+#
+#  [nss_reconnect_maxconntries]
+#    How many tries before sleeping
+#    *Optional* (defaults to 2)
 #
 #  [pam]
 #    If enabled (pam => true) enables pam module, which will
@@ -86,6 +122,11 @@
 #  [pam_filter]
 #    Filter to use when retrieving user information
 #    *Optional* (defaults to *'objectClass=posixAccount'*)
+#
+#  [sssd]
+#    Enable to configure ldap via sssd.
+#    Using sssd it is working on Fedora.
+#    *Optional* (defaults to false)
 #
 #  [enable_motd]
 #    Use motd to report the usage of this module.
@@ -152,13 +193,22 @@ class ldap(
   $idle_timelimit = 60,
   $binddn         = false,
   $bindpw         = false,
+  $port           = undef,
+  $scope          = 'sub',
   $ssl            = false,
   $ssl_cert       = false,
+  $tls_checkpeer  = true,
+  $tls_ciphers    = 'TLSv1',
+  $schema         = 'rfc2307bis',
 
   $nsswitch   = false,
   $nss_passwd = false,
   $nss_group  = false,
   $nss_shadow = false,
+  $nss_reconnect_tries = 5,
+  $nss_reconnect_sleeptime = 4,
+  $nss_reconnect_maxsleeptime = 64,
+  $nss_reconnect_maxconntries = 2,
 
   $pam            = false,
   $pam_att_login  = 'uid',
@@ -166,6 +216,7 @@ class ldap(
   $pam_passwd     = 'md5',
   $pam_filter     = 'objectClass=posixAccount',
 
+  $sssd           = false,
   $enable_motd    = false,
   $ensure         = present) {
 
@@ -185,18 +236,25 @@ class ldap(
     owner   => $ldap::params::owner,
     group   => $ldap::params::group,
   }
-
+  $file_ensure = $ensure ? {
+    present => directory,
+    default => absent,
+  }
   file { $ldap::params::prefix:
-    ensure  => $ensure ? {
-                  present => directory,
-                  default => absent,
-                },
+    ensure  => $file_ensure,
     require => Package[$ldap::params::package],
   }
 
   file { "${ldap::params::prefix}/${ldap::params::config}":
     content => template("ldap/${ldap::params::config}.erb"),
     require => File[$ldap::params::prefix],
+  }
+
+  if(!$port) {
+    $port = $ssl ? {
+      false => 389,
+      true  => 636,
+    }
   }
 
   if($ssl) {
@@ -210,33 +268,46 @@ class ldap(
       owner  => 'root',
       group  => $ldap::params::group,
       mode   => '0644',
-      source => "puppet:///files/ldap/${ssl_cert}"
+      source => "puppet:///modules/ldap/${ssl_cert}"
     }
 
     # Create certificate hash file
     exec { 'Build cert hash':
-      command => "ln -s ${ldap::params::cacertdir}/${ssl_cert} ${ldap::params::cacertdir}/$(openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
-      unless  => "test -f ${ldap::params::cacertdir}/$(openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
+      command => "/usr/bin/ln -s ${ldap::params::cacertdir}/${ssl_cert} ${ldap::params::cacertdir}/$(/usr/bin/openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
+      unless  => "/usr/bin/test -f ${ldap::params::cacertdir}/$(/usr/bin/openssl x509 -noout -hash -in ${ldap::params::cacertdir}/${ssl_cert}).0",
       require => File["${ldap::params::cacertdir}/${ssl_cert}"]
     }
   }
 
-  # require module nsswitch
+  # include module nsswitch
   if($nsswitch == true) {
-    class { 'nsswitch':
-      uri         => $uri,
-      base        => $base,
-      module_type => $ensure ? {
-                        'present' => 'ldap',
-                        default   => 'none'
-                      },
+    include nsswitch
+  }
+
+  # include module pam
+  if($pam == true) {
+    include pam
+  }
+  if ($sssd == true) {
+    class { 'sssd':
+      ensure              => $ldap::ensure,
+      uri                 => $ldap::uri,
+      base                => $ldap::base,
+      binddn              => $ldap::binddn,
+      bindpw              => $ldap::bindpw,
+      ssl                 => $ldap::ssl,
+      tls_ciphers         => $ldap::tls_ciphers,
+      cacertdir           => $ldap::ldap::params::cacertdir,
+      schema              => $ldap::schema,
+      nsswitch            => $ldap::nsswitch,
+      nss_passwd          => $ldap::nss_passwd,
+      nss_group           => $ldap::nss_group,
+      nss_shadow          => $ldap::nss_shadow,
+      nss_reconnect_tries => $ldap::nss_reconnect_tries,
+      pam                 => $ldap::pam,
+      pam_att_login       => $ldap::pam_att_login,
+      pam_filter          => $ldap::pam_filter,
     }
   }
-
-  # require module pam
-  if($pam == true) {
-    Class ['pam::pamd'] -> Class['ldap']
-  }
-
 }
 

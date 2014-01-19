@@ -6,41 +6,52 @@
 uri  <%= @uri %>
 base <%= @base %>
 
-ldap_version   <%= @version %>
+#ldap_version   <%= @version %>
 timelimit      <%= @timelimit %>
 bind_timelimit <%= @bind_timelimit %>
-idle_timelimit <%= @idle_timelimit %>
-bind_policy    soft
-deref          never
+#idle_timelimit <%= @idle_timelimit %>
+#bind_policy    soft
+#deref          never
 
 <% if @binddn != false then -%>
 binddn <%= @binddn %>
 bindpw <%= @bindpw %>
 <% end -%>
 
+port <%= @port %>
+scope <%= @scope %>
+
 <% if @nsswitch == true then -%>
 # DNs in groups
-#nss_schema         rfc2307bis
+nss_schema         <%= @schema %>
 #nss_map_attribute  uniquemember member
 #nss_map_attribute memberuid    member
 #nss_getgrent_skipmembers yes
 
-nss_base_passwd <%= @nss_passwd %>,<%= @base %>?sub
-nss_base_shadow <%= @nss_shadow %>,<%= @base %>?sub
-nss_base_group  <%= @nss_group  %>,<%= @base %>?one
-nss_initgroups_ignoreusers root daemon bin sys sync games man lp mail news uucp proxy www-data backup list irc gnats nobody libuuid statd sshd puppet
+nss_base_passwd <%= @nss_passwd %>,<%= @base %>
+nss_base_shadow <%= @nss_shadow %>,<%= @base %>
+nss_base_group  <%= @nss_group  %>,<%= @base %>
+nss_reconnect_tries <%= @nss_reconnect_tries %>
+nss_reconnect_sleeptime <%= @nss_reconnect_sleeptime %>
+nss_reconnect_maxsleeptime <%= @nss_reconnect_maxsleeptime %>
+nss_reconnect_maxconntries <%= @nss_reconnect_maxconntries %>
 <% end -%>
 
 <% if @pam == true then -%>
-pam_login_attribute  <%= @pam_att_login %>
-pam_member_attribute <%= @pam_att_member %>
+#pam_login_attribute  <%= @pam_att_login %>
+#pam_member_attribute <%= @pam_att_member %>
 pam_password         <%= @pam_passwd %>
 pam_filter           <%= @pam_filter %>
 <% end -%>
 
 <% if @ssl == true then -%>
-ssl           start_tls
-tls_reqcert   never
+ssl           on
+<% if @tls_checkpeer == true then -%>
+tls_checkpeer yes
+<% else -%>
+tls_checkpeer no
+<% end -%>
+tls_ciphers <%= @tls_ciphers %>
 tls_cacertdir <%= scope.lookupvar('ldap::params::cacertdir') %>
 <% else -%>
 #ssl           start_tls
