@@ -225,14 +225,14 @@ class ldap::client(
   }
 
   file { "${ldap::params::prefix}/${ldap::params::config}":
-    content => template("etc/ldap/${ldap::params::prefix}/${ldap::params::config}.erb"),
+    content => template("ldap/${ldap::params::prefix}/${ldap::params::config}.erb"),
     require => File[$ldap::params::prefix],
   }
 
   if($ssl) {
 
     if(!$ssl_cert) {
-      fail('When ssl is enabled you have to define ssl_cert (filename)')
+      fail('When ssl is enabled you must define ssl_cert (filename)')
     }
 
     file { $ldap::params::cacertdir:
