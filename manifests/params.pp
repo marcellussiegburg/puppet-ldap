@@ -1,5 +1,40 @@
 class ldap::params {
+  ### Default Values
+  $version        = '3',
+  $timelimit      = 30,
+  $bind_timelimit = 30,
+  $idle_timelimit = 60,
+  $binddn         = false,
+  $bindpw         = false,
+  $port           = undef,
+  $scope          = 'sub',
+  $ssl            = false,
+  $ssl_cert       = false,
+  $tls_checkpeer  = true,
+  $tls_ciphers    = 'TLSv1',
+  $schema         = 'rfc2307bis',
 
+  $nsswitch   = false,
+  $nss_passwd = false,
+  $nss_group  = false,
+  $nss_shadow = false,
+  
+  $nss_reconnect_tries        = 5,
+  $nss_reconnect_sleeptime    = 4,
+  $nss_reconnect_maxsleeptime = 64,
+  $nss_reconnect_maxconntries = 2,
+
+  $pam            = false,
+  $pam_att_login  = 'uid',
+  $pam_att_member = 'member',
+  $pam_passwd     = 'md5',
+  $pam_filter     = 'objectClass=posixAccount',
+
+  $sssd           = false,
+  $enable_motd    = false,
+  $ensure         = present
+  
+  ### OS Specific values
   case $::osfamily {
 
     'Debian' : {

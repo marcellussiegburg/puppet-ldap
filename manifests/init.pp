@@ -169,38 +169,39 @@
 class ldap(
   $uri,
   $base,
-  $version        = '3',
-  $timelimit      = 30,
-  $bind_timelimit = 30,
-  $idle_timelimit = 60,
-  $binddn         = false,
-  $bindpw         = false,
-  $port           = undef,
-  $scope          = 'sub',
-  $ssl            = false,
-  $ssl_cert       = false,
-  $tls_checkpeer  = true,
-  $tls_ciphers    = 'TLSv1',
-  $schema         = 'rfc2307bis',
+  $version        = $ldap::params::version,
+  $timelimit      = $ldap::params::timelimit,
+  $bind_timelimit = $ldap::params::bind_timelimit,
+  $idle_timelimit = $ldap::params::idle_timelimit,
+  $binddn         = $ldap::params::binddn,
+  $bindpw         = $ldap::params::bindpw,
+  $port           = $ldap::params::port,
+  $scope          = $ldap::params::scope,
+  $ssl            = $ldap::params::ssl,
+  $ssl_cert       = $ldap::params::ssl_cert,
+  $tls_checkpeer  = $ldap::params::tls_checkpeer,
+  $tls_ciphers    = $ldap::params::tls_ciphers,
+  $schema         = $ldap::params::schema,
 
-  $nsswitch   = false,
-  $nss_passwd = false,
-  $nss_group  = false,
-  $nss_shadow = false,
-  $nss_reconnect_tries = 5,
-  $nss_reconnect_sleeptime = 4,
-  $nss_reconnect_maxsleeptime = 64,
-  $nss_reconnect_maxconntries = 2,
+  $nsswitch   = $ldap::params::nsswitch,
+  $nss_passwd = $ldap::params::nss_passwd,
+  $nss_group  = $ldap::params::nss_group,
+  $nss_shadow = $ldap::params::nss_shadow,
+  
+  $nss_reconnect_tries        = $ldap::params::nss_reconnect_tries,
+  $nss_reconnect_sleeptime    = $ldap::params::nss_reconnect_sleeptime,
+  $nss_reconnect_maxsleeptime = $ldap::params::nss_reconnect_maxsleeptime,
+  $nss_reconnect_maxconntries = $ldap::params::nss_reconnect_maxconntries,
 
-  $pam            = false,
-  $pam_att_login  = 'uid',
-  $pam_att_member = 'member',
-  $pam_passwd     = 'md5',
-  $pam_filter     = 'objectClass=posixAccount',
+  $pam            = $ldap::params::pam,
+  $pam_att_login  = $ldap::params::pam_att_login,
+  $pam_att_member = $ldap::params::pam_att_member,
+  $pam_passwd     = $ldap::params::pam_passwd,
+  $pam_filter     = $ldap::params::pam_filter,
 
-  $sssd           = false,
-  $enable_motd    = false,
-  $ensure         = present) {
+  $sssd           = $ldap::params::sssd,
+  $enable_motd    = $ldap::params::enable_motd,
+  $ensure         = $ldap::params::ensure) {
 
   include ldap::params
 
@@ -227,7 +228,7 @@ class ldap(
   }
 
   file { "${ldap::params::prefix}/${ldap::params::config}":
-    content => template("ldap/${ldap::params::config}.erb"),
+    content => template("${ldap::params::prefix}/${ldap::params::config}.erb"),
     require => File[$ldap::params::prefix],
   }
 
